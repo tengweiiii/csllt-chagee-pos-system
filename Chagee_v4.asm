@@ -6,7 +6,7 @@ header db "=================================================================",10
 
 menu_title db 10,"------------------------------ MENU -----------------------------",10,0
 
-item1 db "1. BO.YA Jasmine Green Milk Tea     RM 11.90 (R) | RM 13.90 (L)",10,0
+item1 db "1. BO•YA Jasmine Green Milk Tea     RM 11.90 (R) | RM 13.90 (L)",10,0
 item2 db "2. White Peach Oolong Milk Tea      RM 11.90 (R) | RM 13.90 (L)",10,0
 item3 db "3. Da Hong Pao Milk Tea             RM 12.90 (R) | RM 14.90 (L)",10,0
 item4 db "4. Tie Guan Yin Milk Tea            RM 14.90 (R) | RM 16.90 (L)",10,0
