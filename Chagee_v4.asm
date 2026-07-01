@@ -254,10 +254,10 @@ size_selection:
        mov edi, eax                                                                               ; save the drinks size choice in edi for future use
 
 sugar_selection:
-       mov eax, sugar_menu                                                                         ; load the address of the sugar level text into eax
+       mov eax, sugar_menu                                                                        ; load the address of the sugar level text into eax
        call print_str                                                                             ; call print_str function to print the sugar level menu to the screen
 
-       mov eax, ask_sugar                                                                          ; print the prompt asking users which sugar level to pick 
+       mov eax, ask_sugar                                                                         ; print the prompt asking users which sugar level to pick 
        call print_str
        
        mov eax, 3                                                                                 ; sys_read system call 
