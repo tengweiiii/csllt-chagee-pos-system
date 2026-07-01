@@ -11,7 +11,6 @@
 ; Nothing here changes size when the program runs
 ; --------------------------------------------------------------------------------------------------
 section .data    
-
        ; the welcome banner
        header db "=================================================================",10          ; 10 is the newline character
               db "                        WELCOME TO CHAGEE                        ",10
@@ -149,7 +148,6 @@ section .data
 ; Nothing is stored here, it is just reserved space
 ; --------------------------------------------------------------------------------------------------
 section .bss
-
        input_buf resb 32                                                                          ; reserve 32 bytes to hold user input
        num_buf resb 16                                                                            ; reserve 16 bytes used to convert a number into text to be printed                                                                          
        
@@ -175,146 +173,167 @@ section .text
 global _start
 
 _start:
-       mov dword [subtotal],0
-       mov dword [order_count],0
+       mov dword [subtotal], 0                                                                    ; set subtotal to 0 cent before any items are added
+       mov dword [order_count], 0                                                                 ; set number of order lines to 0 since the cart is empty
        
-       mov eax,header
-       call print_str
+       mov eax, header                                                                            ; load the address of the welcome banner text into eax
+       call print_str                                                                             ; call print_str function to print the banner to the screen
 
 order_loop:
-       mov eax,menu_title
+       mov eax, menu_title                                                                        ; load the address of the menu title text into eax
+       call print_str                                                                             ; call print_str function to print the banner to the screen
+
+       mov eax, item1                                                                             ; load the address of the first drink text into eax
+       call print_str                                                                             ; call print_str function to print the first drinks to the screen
+
+       mov eax, item2                                                                             ; load the address of the second drink text into eax
+       call print_str                                                                             ; call print_str function to print the second drinks to the screen
+
+       mov eax, item3                                                                             ; load the address of the third drink text into eax
+       call print_str                                                                             ; call print_str function to print the third drinks to the screen
+
+       mov eax, item4                                                                             ; load the address of the fourth drink text into eax
+       call print_str                                                                             ; call print_str function to print the fourth drinks to the screen
+
+       mov eax, item5                                                                             ; load the address of the fifth drink text into eax
+       call print_str                                                                             ; call print_str function to print the fifth drinks to the screen
+
+       mov eax, item0                                                                             ; load the address of the checkout option text into eax
+       call print_str                                                                             ; call print_str function to print the checkout option to the screen
+       
+       mov eax, ask_item                                                                          ; print the prompt asking users which drink to pick                                    
        call print_str
        
-       mov eax,item1
-       call print_str
-       mov eax,item2
-       call print_str
-       mov eax,item3
-       call print_str
-       mov eax,item4
-       call print_str
-       mov eax,item5
-       call print_str
-       mov eax,item0
-       call print_str
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       mov eax,ask_item
-       call print_str
+       movzx eax,byte [input_buf]                                                                 ; load only the first character the user typed into eax
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       cmp eax, '0'                                                                               ; if user typed '0' 
+       je checkout                                                                                ; skip to checkout (je - jump if equal)
        
-       movzx eax,byte [input_buf]
+       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       jl bad_item                                                                                ; print invalid input message (jl - jump if less)
        
-       cmp eax,'0'
-       je checkout
+       cmp eax, '5'                                                                               ; if the character is more than '1'
+       jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
-       cmp eax,'1'
-       jl bad_item
+       sub eax, '1'                                                                               ; convert the character (1-5) into plain number (0-4)
+                                                                                                  ; 0-4 matches the index position in tables
        
-       cmp eax,'5'
-       jg bad_item
-       
-       sub eax,'1'
-       
-       mov esi,eax
+       mov esi, eax                                                                               ; store the chosen drink index in esi so it is not overwritten while ask for size, sugar and ice
 
 size_selection:
-       mov eax,size_menu
+       mov eax, size_menu                                                                         ; load the address of the drinks size text into eax
+       call print_str                                                                             ; call print_str function to print the drinks size menu to the screen
+
+       mov eax, ask_size                                                                          ; print the prompt asking users which drinks size to pick 
        call print_str
-       mov eax,ask_size
-       call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       movzx eax,byte [input_buf]
+       movzx eax,byte [input_buf]                                                                 ; load only the first character the user typed into eax
+                                                                                                  ; movzx - move with zero extend
        
-       cmp eax,'1'
-       jl bad_item
-       cmp eax,'2'
-       jg bad_item
+       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       jl bad_item                                                                                ; print invalid input message (jl - jump if less)
+
+       cmp eax, '5'                                                                               ; if the character is more than '1'
+       jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
-       sub eax,'1'
+       sub eax, '1'                                                                               ; convert the character (1/2) into plain number (0/1)
+                                                                                                  ; 0-1 matches the index position in iname_tables
        
-       mov edi,eax
+       mov edi, eax                                                                               ; save the drinks size choice in edi for future use
 
 sugar_selection:
-       mov eax,sugar_menu
+       mov eax, sugar_menu                                                                         ; load the address of the sugar level text into eax
+       call print_str                                                                             ; call print_str function to print the sugar level menu to the screen
+
+       mov eax, ask_sugar                                                                          ; print the prompt asking users which sugar level to pick 
        call print_str
-       mov eax,ask_sugar
-       call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       movzx eax,byte [input_buf]
+       movzx eax,byte [input_buf]                                                                 ; load only the first character the user typed into eax
+                                                                                                  ; movzx - move with zero extend
        
-       cmp eax,'1'
-       jl bad_item
-       cmp eax,'4'
-       jg bad_item
+       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       jl bad_item                                                                                ; print invalid input message (jl - jump if less)
+
+       cmp eax, '5'                                                                               ; if the character is more than '5'
+       jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
-       sub eax,'1'
+       sub eax, '1'                                                                               ; convert the character (1/2) into plain number (0/1)
+                                                                                                  ; 0-1 matches the index position in sugar_tables
        
-       mov ebp,eax
+       mov ebp, eax                                                                               ; save the drinks size choice in edi for future use
 
 ice_selection:
-       mov eax,ice_menu
+       mov eax, ice_menu                                                                          ; load the address of the ice level text into eax
+       call print_str                                                                             ; call print_str function to print the ice level menu to the screen
+
+       mov eax, ask_ice                                                                           ; print the prompt asking users which ice level to pick 
        call print_str
-       mov eax,ask_ice
-       call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       movzx eax,byte [input_buf]
+       movzx eax,byte [input_buf]                                                                 ; load only the first character the user typed into eax
+                                                                                                  ; movzx - move with zero extend
        
-       cmp eax,'1'
-       jl bad_item
-       cmp eax,'4'
-       jg bad_item
+       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       jl bad_item                                                                                ; print invalid input message (jl - jump if less)
+
+       cmp eax, '4'                                                                               ; if the character is more than '4'
+       jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
-       sub eax,'1'
+       sub eax, '1'                                                                               ; convert the character (1-4) into plain number (0-3)
+                                                                                                  ; 0-1 matches the index position in ice_table
        
-       push eax
+       push eax                                                                                   ; push the ice choice onto the stack to save it
+                                                                                                  ; because we are running out of free registers (esi, edi, ebp are holding drink, size and sugar)
 
 quantity_selection:
-       mov eax,ask_qty
+       mov eax, ask_qty                                                                           ; print the prompt asking users how many quantity to pick 
        call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       movzx eax,byte [input_buf]
+       movzx eax,byte [input_buf]                                                                 ; load only the first character the user typed into eax
+                                                                                                  ; movzx - move with zero extend
        
-       sub eax,'0'
+       sub eax, '0'                                                                               ; convert the typed character into plain number 
        
-       cmp eax,1
-       jl bad_qty
-       cmp eax,9
-       jg bad_qty
+       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       jl bad_item                                                                                ; print invalid input message (jl - jump if less)
+
+       cmp eax, '9'                                                                               ; if the character is more than '9'
+       jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
-       mov edx,eax
+       mov edx, eax                                                                               ; save the quantity in edx
        
-       pop ecx
+       pop ecx                                                                                    ; retrieve the ice choice we push earlier and put it in ecx
        
-       mov ebx,0
+       mov ebx, 0                                                                                 ; ebx will be used as loop counter starting at 0
 
 find_existing:  
        cmp ebx,[order_count]
