@@ -336,103 +336,100 @@ quantity_selection:
        mov ebx, 0                                                                                 ; ebx will be used as loop counter starting at 0
 
 find_existing:  
-       cmp ebx,[order_count]
-       jge add_new_item
+       cmp ebx, [order_count]                                                                     ; if we checked every existing order line without a match
+       jge add_new_item                                                                           ; add new item as a brand-new line instead (jge - jump if greater or equal)
        
-       mov eax,[order_items + ebx*4]
+       mov eax, [order_items + ebx*4]                                                             ; load the drinks stored in order line number ebx
        
-       cmp eax,esi
-       jne next_record
+       cmp eax, esi                                                                               ; if the drink doesn't match what the user chose
+       jne next_record                                                                            ; move on to the next line (jne - jump if not equal)
        
-       mov eax,[order_sizes + ebx*4]
+       mov eax, [order_sizes + ebx*4]                                                             ; load the drinks size stored in this order line 
        
-       cmp eax,edi
-       jne next_record
+       cmp eax, edi                                                                               ; if the drinks size doesn't match what the user chose
+       jne next_record                                                                            ; move on to the next line (jne - jump if not equal)
        
-       mov eax,[order_sugar + ebx*4]
+       mov eax, [order_sugar + ebx*4]                                                             ; load the sugar level stored in this order line 
        
-       cmp eax,ebp
-       jne next_record
+       cmp eax, ebp                                                                               ; if the sugar level doesn't match what the user chose
+       jne next_record                                                                            ; move on to the next line (jne - jump if not equal)
        
-       mov eax,[order_ice + ebx*4]
+       mov eax, [order_ice + ebx*4]                                                               ; load the ice level stored in this order line 
        
-       cmp eax,ecx
-       jne next_record
+       cmp eax, ecx                                                                               ; if the ice level doesn't match what the user chose
+       jne next_record                                                                            ; move on to the next line (jne - jump if not equal)
        
-       mov eax,[order_qtys + ebx*4]
+       mov eax, [order_qtys + ebx*4]                                                              ; load the order quantity stored in this order line 
        
-       add eax,edx
+       add eax, edx                                                                               ; add the new quantity on top of the existing quantity
        
-       mov [order_qtys + ebx*4],eax
+       mov [order_qtys + ebx*4], eax                                                              ; save the combined quantity back into that order line
        
-       cmp edi,0
-       je merge_regular_price
+       cmp edi, 0                                                                                 ; if drinks size is regular (0)
+       je merge_regular_price                                                                     ; use regular price list (je - jump if equal)
        
-       mov eax,[large_prices + esi*4]
-       jmp merge_price_done
+       mov eax, [large_prices + esi*4]                                                            ; otherwise load the large size for this drink
+       jmp merge_price_done                                                                       ; jmp - jump
        
-       merge_regular_price:
+merge_regular_price:
+       mov eax, [regular_prices + esi*4]                                                          ; load the regular size for this drink
        
-       mov eax,[regular_prices + esi*4]
+merge_price_done:
+       imul eax, edx                                                                              ; multiply the price by newly added quantity to get the cost to add to the subtotal (imul - integer multiply)
+       add [subtotal], eax                                                                        ; add that cost onto the running subtotal
        
-       merge_price_done:
-       
-       imul eax,edx
-       
-       add [subtotal],eax
-       
-       mov eax,added_msg
+       mov eax, added_msg                                                                         ; print the message that the item was added successfully 
        call print_str
        
-       jmp show_cart
+       jmp show_cart                                                                              ; show the updated cart (jmp - jump)
 
 next_record:
-       inc ebx
-       jmp find_existing
+       inc ebx                                                                                    ; move to check the next order line (inc - increment)
+       jmp find_existing                                                                          ; repeat the matching check with the new line number 
 
 add_new_item:
-       mov ebx,[order_count]
+       mov ebx, [order_count]                                                                     ; get the next free order line number
        
-       cmp ebx,20
-       jge order_loop
+       cmp ebx, 20                                                                                ; if the cart is already full (20 lines)
+       jge order_loop                                                                             ; go back to the menu without adding anything (jge - jump if greater or equal)
        
-       mov [order_items + ebx*4],esi
-       mov [order_sizes + ebx*4],edi
-       mov [order_sugar + ebx*4],ebp
-       mov [order_ice + ebx*4],ecx
-       mov [order_qtys + ebx*4],edx
+       mov [order_items + ebx*4], esi                                                             ; store the chosen drink in this new order line
+       mov [order_sizes + ebx*4], edi                                                             ; store the chosen size
+       mov [order_sugar + ebx*4], ebp                                                             ; store the chosen sugar level
+       mov [order_ice + ebx*4], ecx                                                               ; store the chosen ice level
+       mov [order_qtys + ebx*4], edx                                                              ; store the chosen quantity
        
-       inc dword [order_count]
+       inc dword [order_count]                                                                    ; increase the order count by 1 since we just added a line
        
-       cmp edi,0
-       je new_regular_price
+       cmp edi, 0                                                                                 ; if the size is regular (0)
+       je new_regular_price                                                                       ; use the regular price list (je - jump if equal)
        
-       mov eax,[large_prices + esi*4]
+       mov eax, [large_prices + esi*4]                                                            ; otherwise load the large price for this drink
        jmp new_price_done
     
 new_regular_price:
-       mov eax,[regular_prices + esi*4]
+       mov eax, [regular_prices + esi*4]                                                          ; load the regular size for this drink
        
-       new_price_done:
+new_price_done:
+       imul eax, edx                                                                              ; multiply the price by newly added quantity to get the cost to add to the subtotal (imul - integer multiply)
+       add [subtotal], eax                                                                        ; add that cost onto the running subtotal
        
-       imul eax,edx
-       
-       add [subtotal],eax
-       
-       mov eax,added_msg
+       mov eax, added_msg                                                                         ; print the message that the item was added successfully 
        call print_str
        
-       jmp show_cart
+       jmp show_cart                                                                              ; show the updated cart (jmp - jump)
 
 bad_item:
-       mov eax,invalid_msg
+       mov eax,invalid_msg                                                                        ; print the message that the user input was invalid 
        call print_str
-       jmp order_loop
+
+       jmp order_loop                                                                             ; return to the menu to try again
 
 bad_qty:
-       mov eax,invalid_msg
+       mov eax,invalid_msg                                                                        ; print the message that the quantity enter was invalid
        call print_str
-       jmp order_loop
+
+       jmp order_loop                                                                             ; return to the menu to try again
 
 show_cart:
        mov eax,cart_hdr
