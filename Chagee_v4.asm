@@ -432,183 +432,184 @@ bad_qty:
        jmp order_loop                                                                             ; return to the menu to try again
 
 show_cart:
-       mov eax,cart_hdr
+       mov eax, cart_hdr                                                                          ; print the cart banner
        call print_str
        
-       mov esi,0
+       mov esi, 0                                                                                 ; start a loop counter at 0 and go through every order line
 
 cart_loop:
-       cmp esi,[order_count]
-       jge cart_done
+       cmp esi, [order_count]                                                                     ; if we already printed every order line
+       jge cart_done                                                                              ; stop the loop (jge - jump if greater or equal)
        
-       mov ebx,[order_items + esi*4]
+       mov ebx, [order_items + esi*4]                                                             ; get the drink index
        
-       mov eax,[iname_table + ebx*4]
+       mov eax, [iname_table + ebx*4]                                                             ; lookup the address of that drink's name
+       call print_str                                                                             ; print the drink name
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,newline
+       mov eax, size_label                                                                        ; print the size label
        call print_str
        
-       mov eax,size_label
+       mov ebx, [order_sizes + esi*4]                                                             ; get the drinks size value 
+       
+       cmp ebx, 0                                                                                 ; if the drinks size is 0
+       je cart_regular                                                                            ; it means regular (je - jump if equal)
+       
+       mov eax, large_txt                                                                         ; otherwise print "Large"
        call print_str
        
-       mov ebx,[order_sizes + esi*4]
-       
-       cmp ebx,0
-       je cart_regular
-       
-       mov eax,large_txt
-       call print_str
-       
-       jmp cart_size_done
+       jmp cart_size_done                                                                         ; jmp - jump
 
 cart_regular:
-       mov eax,regular_txt
+       mov eax, regular_txt                                                                       ; print "Regular"
        call print_str
 
 cart_size_done:
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,sugar_label
+       mov eax, sugar_label                                                                       ; print the sugar label
        call print_str
        
-       mov ebx,[order_sugar + esi*4]
+       mov ebx, [order_sugar + esi*4]                                                             ; get the sugar value index
        
-       mov eax,[sugar_table + ebx*4]
+       mov eax, [sugar_table + ebx*4]                                                             ; lookup the address of the drink's sugar level
+       call print_str                                                                             ; print the the drink's sugar level 
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,newline
+       mov eax, ice_label                                                                         ; print the ice value index
        call print_str
        
-       mov eax,ice_label
+       mov ebx, [order_ice + esi*4]                                                               ; get the ice value index
+       
+       mov eax, [ice_table + ebx*4]                                                               ; look up the address of the drink's ice level
+       call print_str                                                                             ; print the drink's ice level
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov ebx,[order_ice + esi*4]
-       
-       mov eax,[ice_table + ebx*4]
+       mov eax, qty_label                                                                         ; print the quantity label
        call print_str
        
-       mov eax,newline
+       mov eax, [order_qtys + esi*4]                                                              ; get the order quantity index
+       
+       call print_int                                                                             ; print the quantity as a plain number
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,qty_label
+       mov eax, divider                                                                           ; print a divider line to separate items
        call print_str
        
-       mov eax,[order_qtys + esi*4]
+       inc esi                                                                                    ; move to the next order line (inc - increment)
        
-       call print_int
-       
-       mov eax,newline
-       call print_str
-       
-       mov eax,divider
-       call print_str
-       
-       inc esi
-       
-       jmp cart_loop
+       jmp cart_loop                                                                              ; repeat the loop for the next line (jmp - jump)
 
 cart_done:
-       mov eax,cart_subtotal
+       mov eax, cart_subtotal                                                                     ; print the cart subtotal label
        call print_str
        
-       mov eax,[subtotal]
+       mov eax, [subtotal]                                                                        ; load the subtotal in cents
        
-       call print_ringgit
+       call print_ringgit                                                                         ; print it formatted as money
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,continue_menu
+       mov eax, continue_menu                                                                     ; show continue ordering/ checkout options
        call print_str
        
-       mov eax,ask_continue
+       mov eax, ask_continue                                                                      ; prompt the user to pick 1 or 2
        call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       movzx eax,byte [input_buf]
+       movzx eax, byte [input_buf]                                                                 
        
-       cmp eax,'1'
-       je order_loop
+       cmp eax, '1'                                                                               ; if user choose 1
+       je order_loop                                                                              ; go back to order more drinks (je - jump if equal)
        
-       cmp eax,'2'
-       je checkout
+       cmp eax, '2'                                                                               ; if user choose 2
+       je checkout                                                                                ; go to checkout
        
-       jmp show_cart
+       jmp show_cart                                                                              ; if they typed anything else, display the cart again
 
 checkout:
-       mov eax,receipt_hdr
+       mov eax, receipt_hdr                                                                       ; print the receipt banner
        call print_str
        
-       mov esi,0
+       mov esi, 0                                                                                 ; start a loop counter at 0 to print every order line
 
 receipt_loop:
-       cmp esi,[order_count]
+       cmp esi, [order_count]                                                                     ; if every line has been printed, stop the loop
        jge receipt_done
        
-       mov ebx,[order_items + esi*4]
+       mov ebx, [order_items + esi*4]                                                             ; get the drink index 
        
-       mov eax,[iname_table + ebx*4]
+       mov eax, [iname_table + ebx*4]                                                             ; lookup the address of the drink's name
+       call print_str                                                                             ; print the drink's name
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,newline
+       mov eax, size_label                                                                        ; print the size label
        call print_str
        
-       mov eax,size_label
-       call print_str
+       mov ebx, [order_sizes + esi*4]                                                             ; get the size label
        
-       mov ebx,[order_sizes + esi*4]
-       
-       cmp ebx,0
+       cmp ebx, 0                                                                                 ; if 0, it means regular
        je print_regular
        
-       mov eax,large_txt
+       mov eax, large_txt                                                                         ; otherwise print "Large"
        call print_str
-       jmp size_done
+
+       jmp size_done                                                                              ; jmp - jump
 
 print_regular:
-       mov eax,regular_txt
+       mov eax, regular_txt                                                                       ; print "Regular"
        call print_str
 
 size_done:
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,sugar_label
+       mov eax, sugar_label                                                                       ; print the sugar level
        call print_str
        
-       mov ebx,[order_sugar + esi*4]
+       mov ebx, [order_sugar + esi*4]                                                             ; get the sugar level value
        
-       mov eax,[sugar_table + ebx*4]
+       mov eax, [sugar_table + ebx*4]                                                             ; lookup the address of the drink's sugar level
+       call print_str                                                                             ; print the sugar level
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,newline
+       mov eax, ice_label                                                                         ; print the ice label
        call print_str
        
-       mov eax,ice_label
+       mov ebx, [order_ice + esi*4]                                                               ; get the ice level value
+       
+       mov eax, [ice_table + ebx*4]                                                               ; lookup the address of the drink's ice level
+       call print_str                                                                             ; print the ice level
+       
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov ebx,[order_ice + esi*4]
-       
-       mov eax,[ice_table + ebx*4]
+       mov eax, qty_label
        call print_str
        
-       mov eax,newline
-       call print_str
-       
-       mov eax,qty_label
-       call print_str
-       
-       mov eax,[order_qtys + esi*4]
+       mov eax, [order_qtys + esi*4]
        call print_int
        
-       mov eax,newline
+       mov eax, newline
        call print_str
        
        mov eax,amount_label
