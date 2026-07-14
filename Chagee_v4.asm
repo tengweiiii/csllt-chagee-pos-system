@@ -858,16 +858,15 @@ write_string:
 
        ret                                                                                        ; return to wherever this function was called from                                                        
 
-; this function is currently unused
+; this function sets up to convert typed digits into a plain whole number
 string_to_int:
-       push ebx
+       push ebx                                                                                   ; save registers before using them
        push ecx
        push edx
        push esi
        
-       mov esi, input_buf
-       
-       xor eax, eax
+       mov esi, input_buf                                                                         ; point esi at the text the user typed
+       xor eax, eax                                                                               ; start the result number at 0
 
 ; this function converts a typed money value into a plain number of cents
 ; it expects the text to be sitting in input_buf already
@@ -930,31 +929,31 @@ done:
        
        ret                                                                                        ; return to wherever this function was called from with the final cents amount left in eax
 
-; this function is unused
+; this function reads plain whole-number digitas from esi and builds them into a number in eax
 convert_loop:
-       mov bl, [esi]
+       mov bl, [esi]                                                                              ; load the next character
        
-       cmp bl, 10
+       cmp bl, 10                                                                                 ; stop at a newline character
        je convert_done
        
-       cmp bl, 13
+       cmp bl, 13                                                                                 ; stop at a carriage return character
        je convert_done
        
-       cmp bl, 0
+       cmp bl, 0                                                                                  ; stop at the end of the string (null terminator)
        je convert_done
        
-       cmp bl, '0'
+       cmp bl, '0'                                                                                ; stop if the character is not below 0
        jl convert_done
        
-       cmp bl, '9'
+       cmp bl, '9'                                                                                ; stop if the character is above 9
        jg convert_done
        
-       imul eax, eax, 10
-       sub bl, '0'
-       movzx edx, bl
-       add eax, edx
-       inc esi
-       jmp convert_loop
+       imul eax, eax, 10                                                                          ; shift the number built so far one place left to make room for the new digit
+       sub bl, '0'                                                                                ; convert the character into its numeric digit value
+       movzx edx, bl                                                                              ; move it into edx
+       add eax, edx                                                                               ; add the new digit onto the end of the number
+       inc esi                                                                                    ; move to the next character
+       jmp convert_loop                                                                           ; repeat until we hit a stopping character
 
 convert_done:
        pop esi                                                                                    ; restore the saved registers before returning
