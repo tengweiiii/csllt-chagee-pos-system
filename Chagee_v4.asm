@@ -603,142 +603,140 @@ size_done:
        mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax, qty_label
+       mov eax, qty_label                                                                         ; print the quantity label
        call print_str
        
-       mov eax, [order_qtys + esi*4]
-       call print_int
+       mov eax, [order_qtys + esi*4]                                                              ; get the quantity value
+       call print_int                                                                             ; print it as a number
        
-       mov eax, newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,amount_label
+       mov eax, amount_label                                                                      ; print the amount label
        call print_str
        
-       mov ebx,[order_items + esi*4]
+       mov ebx, [order_items + esi*4]                                                             ; get the drink index 
        
-       mov ecx,[order_sizes + esi*4]
+       mov ecx, [order_sizes + esi*4]                                                             ; get the drink size index
        
-       cmp ecx,0
+       cmp ecx, 0                                                                                 ; if the size is regular, use the regular price list
        je receipt_regular
        
-       mov eax,[large_prices + ebx*4]
+       mov eax, [large_prices + ebx*4]                                                            ; otherwise use the large price list
        jmp receipt_price_done
 
 receipt_regular:
-       mov eax,[regular_prices + ebx*4]
+       mov eax, [regular_prices + ebx*4]                                                          ; load the regular price for the drink
 
 receipt_price_done:
-       mov ebx,[order_qtys + esi*4]
+       mov ebx, [order_qtys + esi*4]                                                              ; get the quantity value
        
-       imul eax,ebx
+       imul eax, ebx                                                                              ; multiply price by quantity to get the total cost (imul - integer multiply)
+       call print_ringgit                                                                         ; print the amount 
        
-       call print_ringgit
-       
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,divider
+       mov eax, divider                                                                           ; print a divider line between items
        call print_str
        
-       inc esi
-       jmp receipt_loop
+       inc esi                                                                                    ; move to the next order 
+       jmp receipt_loop                                                                           ; repeat for the next line (jmp - jump)
 
 receipt_done:
-       mov eax,[subtotal]
+       mov eax, [subtotal]                                                                        ; load the subtotal in cents
        
-       mov ebx,6
+       mov ebx, 6                                                                                 ; multiply the tax (6%) by 6 first
+       imul eax, ebx                                                                              ; subtotal * 6
        
-       imul eax,ebx
+       xor edx, edx                                                                               ; clear edx to 0 before doing division
+                                                                                                  ; division uses edx eax together as the number to divide
        
-       xor edx,edx
+       mov ebx, 100                                                                               ; divide by 100 to get 6%
+       div ebx                                                                                    ; divide (subtotal * 6)/ 100 to get the tax amount
        
-       mov ebx,100
+       mov [tax], eax                                                                             ; save the tax amount
+
+       mov eax, [subtotal]                                                                        ; load the subtotal
+
+       add eax, [tax]                                                                             ; add tax to subtotal to get the final total
+
+       mov [total], eax                                                                           ; save the total
        
-       div ebx
-       
-       mov [tax],eax
-       
-       mov eax,[subtotal]
-       
-       add eax,[tax]
-       
-       mov [total],eax
-       
-       mov eax,sub_label
+       mov eax, sub_label                                                                         ; print the subtotal label
        call print_str
        
-       mov eax,[subtotal]
+       mov eax, [subtotal]                                                                        ; print the subtotal amount
        call print_ringgit
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,tax_label
+       mov eax, tax_label                                                                         ; print the tax label
        call print_str
        
-       mov eax,[tax]
+       mov eax, [tax]                                                                             ; print the tax amount
        call print_ringgit
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,total_label
+       mov eax, total_label                                                                       ; print the total label
        call print_str
        
-       mov eax,[total]
+       mov eax, [total]                                                                           ; print the total amount
        call print_ringgit
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
 
 payment_section:
-       mov eax,ask_payment
+       mov eax, ask_payment                                                                       ; ask the customer how much cash they are paying with
        call print_str
        
-       mov eax,3
-       mov ebx,0
-       mov ecx,input_buf
-       mov edx,32
-       int 0x80
+       mov eax, 3                                                                                 ; sys_read system call 
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
        
-       call string_to_cents
+       call string_to_cents                                                                       ; convert the text into plain number of cents, so we can do math with it
        
-       mov [payment],eax
+       mov [payment], eax                                                                         ; save the payment amount in cents
        
-       mov eax,[payment]
+       mov eax, [payment]                                                                         ; load the payment amount
        
-       cmp eax,[total]
-       jl payment_section
+       cmp eax, [total]                                                                           ; if the payment is less than the total, ask again
+       jl payment_section                                                                         ; jl - jump if less
        
-       sub eax,[total]
+       sub eax, [total]                                                                           ; otherwise subtract the total from payment to find the change
        
-       mov [change],eax
+       mov [change], eax                                                                          ; save the change amount
        
-       mov eax,payment_label
+       mov eax, payment_label                                                                     ; print the payment amount
        call print_str
        
-       mov eax,[payment]
+       mov eax, [payment]                                                                         ; print the payment amount
        call print_ringgit
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,change_label
+       mov eax, change_label                                                                      ; print the change label
        call print_str
        
-       mov eax,[change]
+       mov eax, [change]                                                                          ; print the change amount
        call print_ringgit
        
-       mov eax,newline
+       mov eax, newline                                                                           ; move to a new line
        call print_str
        
-       mov eax,thankyou
+       mov eax, thankyou                                                                          ; print the thank you banner
        call print_str
        
-       mov eax,1
-       xor ebx,ebx
-       int 0x80
+       mov eax, 1                                                                                 ; sys_exit system call
+       xor ebx, ebx                                                                               ; exit status 0 (success)
+       int 0x80                                                                                   ; invoke the system call
     
 print_ringgit:
        push eax
