@@ -878,71 +878,59 @@ string_to_cents:
        push edx
        push esi
        
-       mov esi, input_buf                                                                         ; point esi at the start of the typed text
+       mov esi, input_buf                                                                         ; point esi at the start of the typed text (mov - move)
        xor eax, eax                                                                               ; start the result number (the while ringgit part) at 0
 
 whole_part:
-       mov bl, [esi]
+       mov bl, [esi]                                                                              ; load the next character from the types text
        
-       cmp bl, '.'
-       je decimal_part
+       cmp bl, '.'                                                                                ; if we hit a decimal point, stop reading the whole number
+       je decimal_part                                                                            ; je - jump if equal
        
-       cmp bl, 10
-       je finish_whole
+       cmp bl, 10                                                                                 ; if we hit a newline (enter key), the user typed a whole number with no decimal point, so finish here                                                              
+       je finish_whole                                                                            ; je - jump if equal
        
-       cmp bl, 13
-       je finish_whole
+       cmp bl, 13                                                                                 ; some systems send a carriage return (13) too, treat it the same way as newline
+       je finish_whole                                                                            ; je - jump if equal
        
-       sub bl, '0'
-       
-       imul eax, eax, 10
-       
-       movzx edx, bl
-       
-       add eax, edx
-       
-       inc esi
-       
-       jmp whole_part
+       sub bl, '0'                                                                                ; convert this character into its numeric digit value (sub - subtraction)
+       imul eax, eax, 10                                                                          ; shift the number built so far one place to the left (imul - integer multiply)
+                                                                                                  ; multiply by 10 to make room for the new digit
+       movzx edx, bl                                                                              ; move the digit into edx (movzx - move with zero extend)
+       add eax, edx                                                                               ; add the new digit onto the end of the number
+       inc esi                                                                                    ; move the next character in the typed text
+       jmp whole_part                                                                             ; repeat until we hit a dot or the end of input
 
 finish_whole:
-       imul eax, eax, 100
-       
-       jmp done
+       imul eax, eax, 100                                                                         ; no decimal part was typed, so multiply the whole ringgit number by 100 to convert it straight into cents
+       jmp done                                                                                   ; jmp - jump
 
 decimal_part:
-       imul eax, eax, 100
+       imul eax, eax, 100                                                                         ; multiply the whole ringgit part by 100 to make room for two more digits (the cents part)
+       inc esi                                                                                    ; move past the dot character to first decimal digit
+       mov bl, [esi]                                                                              ; load the first digit after the decimal point
+       sub bl, '0'                                                                                ; convert it into its numeric digit value
+
+       movzx edx, bl                                                                              ; move it into edx
+       imul edx, 10                                                                               ; this digit represents tens of cents, so multiply it by 10
+       add eax, edx                                                                               ; add it onto the running total
        
-       inc esi
+       inc esi                                                                                    ; move to the second digit after the decimal point
+       mov bl, [esi]                                                                              ; concert 
+       sub bl, '0'                                                                                ; convert it into its numeric digit value
        
-       mov bl, [esi]
-       
-       sub bl, '0'
-       
-       movzx edx, bl
-       
-       imul edx, 10
-       
-       add eax, edx
-       
-       inc esi
-       
-       mov bl, [esi]
-       
-       sub bl, '0'
-       
-       movzx edx, bl
-       
-       add eax, edx
+       movzx edx, bl                                                                              ; move it into edx
+       add eax, edx                                                                               ; add it onto the running total to finish the cents value
 
 done:
-       pop esi
+       pop esi                                                                                    ; restore the saved registers before returning
        pop edx
        pop ecx
        pop ebx
        
-       ret
+       ret                                                                                        ; return to wherever this function was called from with the final cents amount left in eax
 
+; this function is unused
 convert_loop:
        mov bl, [esi]
        
@@ -962,21 +950,16 @@ convert_loop:
        jg convert_done
        
        imul eax, eax, 10
-       
        sub bl, '0'
-       
        movzx edx, bl
-       
        add eax, edx
-       
        inc esi
-       
        jmp convert_loop
 
 convert_done:
-       pop esi
+       pop esi                                                                                    ; restore the saved registers before returning
        pop edx
        pop ecx
        pop ebx
        
-       ret
+       ret                                                                                        ; return to wherever this function was called from with the final cents number left in eax
