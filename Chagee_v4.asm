@@ -653,7 +653,7 @@ receipt_done:
                                                                                                   ; division uses edx eax together as the number to divide
        
        mov ebx, 100                                                                               ; divide by 100 to get 6%
-       div ebx                                                                                    ; divide (subtotal * 6)/ 100 to get the tax amount
+       div ebx                                                                                    ; divide (subtotal * 6)/ 100 to get the tax amount (div - divide)
        
        mov [tax], eax                                                                             ; save the tax amount
 
@@ -739,208 +739,203 @@ payment_section:
        int 0x80                                                                                   ; invoke the system call
     
 print_ringgit:
-       push eax
+       push eax                                                                                   ; save the original registers so we do not disturb the caller's value
        push ebx
        push edx
        
-       xor edx,edx
+       xor edx, edx                                                                               ; clear edx to 0 before dividion
        
-       mov ebx,100
+       mov ebx, 100                                                                               ; divide by 100 to split cents into ringgit and cents
        
-       div ebx
+       div ebx                                                                                    ; eax = 1290/ 100 = 12 (the ringgit part) (div - divide)
+                                                                                                  ; edx = 1290 % 100 = 90 (the cents part)
        
-       push edx
+       push edx                                                                                   ; save the cents remainder on the stack for later
+                                                                                                  ; edx will get overwritten by print_int
+
+       call print_int                                                                             ; print the ringgit part
        
-       call print_int
-       
-       mov eax,dot_str
+       mov eax, dot_str                                                                           ; print the "." separator
        call print_str
        
-       pop eax
+       pop eax                                                                                    ; retrieve the saved cents remainder back into eax
        
-       cmp eax,10
+       cmp eax, 10                                                                                ; if the cents part is 10 or more, it already prints as two digits so skip the padding step
        jge ringgit_continue
        
-       push eax
+       push eax                                                                                   ; save the cents value before printing the padding zero
        
-       mov eax,zero_pad
+       mov eax, zero_pad                                                                          ; print a leading 0 so that single digit cents show as "05" rather than just "5"
        call print_str
        
-       pop eax
+       pop eax                                                                                    ; restore the cents value to print it next
 
 ringgit_continue:
-       call print_int
+       call print_int                                                                             ; print the cents part (the two digits after the dot)
        
-       pop edx
+       pop edx                                                                                    ; restore the original register values before returning
        pop ebx
        pop eax
        
-       ret
+       ret                                                                                        ; return to whatever this function was called before (ret - return)
 
+; this function prints a plain positive number, it pulls out one digit at a time from the end of the number
 print_int:
-       push eax
+       push eax                                                                                   ; save registers we are about to use, so the caller's values are not lost
        push ebx
        push ecx
        push edx
        push edi
-       
-       mov edi,num_buf
-       
-       add edi,15
-       
-       mov byte [edi],0
-       
-       cmp eax,0
-       jne convert_digits
-       
-       dec edi
-       
-       mov byte [edi],'0'
-       
-       jmp print_number
+
+       mov edi, num_buf                                                                           ; point edi at the start of our scratch buffer for builing the number's text
+       add edi, 15                                                                                ; move edi to the end of the buffer as we will build the digits from last digit to first
+
+       mov byte [edi], 0                                                                          ; place a null terminator at the end so print_str knows where the number text stops
+
+       cmp eax, 0                                                                                 ; if the number is not 0
+       jne convert_digits                                                                         ; convert its digits normally (jne - jump if not equal)
+
+       dec edi                                                                                    ; otherwise move back one spot in the buffer (dec - decrement)
+
+       mov byte [edi], '0'                                                                        ; write the character '0' as it has no digits to extract through division
+
+       jmp print_number                                                                           ; skip the digit-extraction loop and go straight to printing
 
 convert_digits:
-       mov ebx,10
+       mov ebx, 10                                                                                ; repeatedly divide by 10 to peel off one digit at a time from the last digit
 
 next_digit:
-       xor edx,edx
+       xor edx, edx                                                                               ; clear edx to 0 before each division
+       div ebx                                                                                    ; eax = eax/ 10 (quotient)
+                                                                                                  ; ebx = eax % 10 (last digit)
        
-       div ebx
+       add dl, '0'                                                                                ; convert the digit (0-9) into its matching character ('0'-'9')
+       dec edi                                                                                    ; move back one spot in the buffer to make room for this digit (dec - decrement)
+       mov [edi], dl                                                                              ; store the character into the buffet
        
-       add dl,'0'
-       
-       dec edi
-       
-       mov [edi],dl
-       
-       test eax,eax
-       
-       jnz next_digit
+       test eax, eax                                                                              ; check whether there are any digita left (is eax still greater than 0?)
+       jnz next_digit                                                                             ; if yes, repeat and peel off the next digit
 
 print_number:
-       mov eax,edi
+       mov eax, edi                                                                               ; point eax at the start of the finished number text
+       call print_str                                                                             ; print thr number's text
        
-       call print_str
-       
-       pop edi
+       pop edi                                                                                    ; restore all the saved registers in reverse order
        pop edx
        pop ecx
        pop ebx
        pop eax
        
-       ret
+       ret                                                                                        ; return to wherever this function was called from
 
+; this function prints a null-terminated string, eax must hold the memory address of the string to print
 print_str:
-       push eax
+       push eax                                                                                   ; save registers so the caller's values are not disturbed
        push ecx
        push edx
        
-       mov ecx,eax
+       mov ecx, eax                                                                               ; copy the string's address into ecx
+                                                                                                  ; ecx is what the write system call expects for the message location
        
-       xor edx,edx
+       xor edx, edx                                                                               ; edx will count the string's length, start it at 0
 
 find_length:
-       cmp byte [ecx+edx],0
-       je write_string
+       cmp byte [ecx+edx], 0                                                                      ; walk forward until we hit the null terminator (0), which marks the end of the string
+       je write_string                                                                            ; je - jump if equal
        
-       inc edx
+       inc edx                                                                                    ; otherwise count this character and keep looking (inc - increment)
        
-       jmp find_length
+       jmp find_length                                                                            ; keep checking the next character (jmp - jump)
 
 write_string:
-       mov eax,4
+       mov eax, 4                                                                                 ; sys_write system call
+       mov ebx, 1                                                                                 ; file descriptor 1 (stdout)
+       int 0x80                                                                                   ; invoke the system call
        
-       mov ebx,1
-       
-       int 0x80
-       
-       pop edx
+       pop edx                                                                                    ; restore the save registers before returning
        pop ecx
        pop eax
-       
-       ret
 
+       ret                                                                                        ; return to wherever this function was called from                                                        
+
+; this function is currently unused
 string_to_int:
-
        push ebx
        push ecx
        push edx
        push esi
        
-       mov esi,input_buf
+       mov esi, input_buf
        
-       xor eax,eax
+       xor eax, eax
 
+; this function converts a typed money value into a plain number of cents
+; it expects the text to be sitting in input_buf already
 string_to_cents:
        
-       push ebx
+       push ebx                                                                                   ; save registers before using them
        push ecx
        push edx
        push esi
        
-       mov esi,input_buf
-       
-       xor eax,eax
+       mov esi, input_buf                                                                         ; point esi at the start of the typed text
+       xor eax, eax                                                                               ; start the result number (the while ringgit part) at 0
 
 whole_part:
-
-       mov bl,[esi]
+       mov bl, [esi]
        
-       cmp bl,'.'
+       cmp bl, '.'
        je decimal_part
        
-       cmp bl,10
+       cmp bl, 10
        je finish_whole
        
-       cmp bl,13
+       cmp bl, 13
        je finish_whole
        
-       sub bl,'0'
+       sub bl, '0'
        
-       imul eax,eax,10
+       imul eax, eax, 10
        
-       movzx edx,bl
+       movzx edx, bl
        
-       add eax,edx
+       add eax, edx
        
        inc esi
        
        jmp whole_part
 
 finish_whole:
-
-       imul eax,eax,100
+       imul eax, eax, 100
        
        jmp done
 
 decimal_part:
-
-       imul eax,eax,100
+       imul eax, eax, 100
        
        inc esi
        
-       mov bl,[esi]
+       mov bl, [esi]
        
-       sub bl,'0'
+       sub bl, '0'
        
-       movzx edx,bl
+       movzx edx, bl
        
-       imul edx,10
+       imul edx, 10
        
-       add eax,edx
+       add eax, edx
        
        inc esi
        
-       mov bl,[esi]
+       mov bl, [esi]
        
-       sub bl,'0'
+       sub bl, '0'
        
-       movzx edx,bl
+       movzx edx, bl
        
-       add eax,edx
+       add eax, edx
 
 done:
-
        pop esi
        pop edx
        pop ecx
@@ -949,30 +944,30 @@ done:
        ret
 
 convert_loop:
-       mov bl,[esi]
+       mov bl, [esi]
        
-       cmp bl,10
+       cmp bl, 10
        je convert_done
        
-       cmp bl,13
+       cmp bl, 13
        je convert_done
        
-       cmp bl,0
+       cmp bl, 0
        je convert_done
        
-       cmp bl,'0'
+       cmp bl, '0'
        jl convert_done
        
-       cmp bl,'9'
+       cmp bl, '9'
        jg convert_done
        
-       imul eax,eax,10
+       imul eax, eax, 10
        
-       sub bl,'0'
+       sub bl, '0'
        
-       movzx edx,bl
+       movzx edx, bl
        
-       add eax,edx
+       add eax, edx
        
        inc esi
        
