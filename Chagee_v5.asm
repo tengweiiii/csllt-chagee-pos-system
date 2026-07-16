@@ -26,13 +26,13 @@ section .data
        item4 db "4. Tie Guan Yin Milk Tea            RM 14.90 (R) | RM 16.90 (L)",10,0
        item5 db "5. Hojicha Genmai Milk Tea          RM 13.90 (R) | RM 15.90 (L)",10,0
        item0 db "0. Checkout                                                    ",10,0           ; item0 allows user to skip ordering and proceeds to checkout
-       ask_item db 10,"Please select a drink: ", 0                                               ; text that prompt user to select a drink             
+       ask_item db 10,"Which is your cup of tea? (1-5): ", 0                                               ; text that prompt user to select a drink             
        
        ; list of drinks size after a drink is selected
        size_menu db 10,"Size: ", 10
                  db "1. Regular", 10
                  db "2. Large", 10, 0
-       ask_size db "Please select a size: ", 0                                                   ; text that prompt user to select a drinks size
+       ask_size db "Size it up! (1/2): ", 0                                                              ; text that prompt user to select a drinks size
        
        ; list of sugar level choices
        sugar_menu db 10,"Sugar Level", 10
@@ -40,7 +40,7 @@ section .data
                   db "2. Less Sweet", 10
                   db "3. Slightly Sweet", 10
                   db "4. No Additional Sugar", 10, 0
-       ask_sugar db "Please select a sugar level: ", 0                                           ; text that prompt users to select a sugar level
+       ask_sugar db "Customize your sugar level! (1-4): ", 0                                           ; text that prompt users to select a sugar level
        
        ; list of ice level choices
        ice_menu db 10,"Ice Level", 10
@@ -49,8 +49,8 @@ section .data
                 db "3. No Ice", 10
                 db "4. Hot", 10, 0
        
-       ask_ice db "Please select an ice level: ", 0                                              ; text that prompt users to select an ice level 
-       ask_qty db "Please enter the quantity (1-99): ", 0                                        ; 1-99 to support two-digit quantities
+       ask_ice db "How cool do you want it? (1-4): ", 0                                              ; text that prompt users to select an ice level 
+       ask_qty db "How many cups of happiness? (1-99): ", 0                                        ; 1-99 to support two-digit quantities
        
        added_msg db ">>> Item Added Successfully!", 10, 0                                        ; message shown after an item is successfully added to the cart
        invalid_msg db "Invalid input. Please try again.", 10, 0                                  ; message shown when the user types something out of range
