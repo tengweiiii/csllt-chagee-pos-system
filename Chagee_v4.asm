@@ -68,8 +68,13 @@ section .data
        continue_menu db 10
                      db "1. Continue Ordering", 10
                      db "2. Checkout", 10, 0
+                     db "3. Remove Item", 10, 0
        ask_continue db "Choice: ", 0                                                             ; text that prompt users to continue ordering or to checkout
-       
+
+       remove_prompt db "Enter item number to remove: ", 0                                       ; prompt asking which line number the user wants to remove
+       remove_msg db ">>> Item Removed Successfully!", 10, 0                                     ; confirmation printed after a line is successfully removed
+       remove_invalid_msg db "Invalid item number. Please try again.", 10, 0                     ; message printed when the user enters a line number that does not exist
+
        ; banner shown above the final receipt during checkout
        receipt_hdr db 10
                    db "=================================================================",10
@@ -539,8 +544,92 @@ cart_done:
        
        cmp eax, '2'                                                                               ; if user choose 2
        je checkout                                                                                ; go to checkout
-       
+
+       cmp eax, '3'                                                                               ; if user chooses 3, jump to the remove item flow
+       je remove_item                                                                             ; je - jump if equal
+
        jmp show_cart                                                                              ; if they typed anything else, display the cart again
+
+remove_item:
+       mov eax, remove_prompt                                                                     ; print the prompt asking which item number to remove
+       call print_str
+
+       mov eax, 3                                                                                 ; sys_read system call
+       mov ebx, 0                                                                                 ; file descriptor 0 (stdin)
+       mov ecx, input_buf                                                                         ; address to store the user input
+       mov edx, 32                                                                                ; number of bytes to read (32 bytes)
+       int 0x80                                                                                   ; invoke the system call
+
+       movzx eax, byte [input_buf]                                                                ; load only the first character the user typed into eax
+                                                                                                  ; movzx - move with zero extend
+       sub eax, '1'                                                                               ; convert the display number (1-based) into an array index (0-based)
+
+       cmp eax, 0                                                                                 ; if the index is below 0 the input was not a valid item number
+       jl remove_invalid                                                                          ; jump to the invalid handler (jl - jump if less)
+
+       mov ebx, [order_count]                                                                     ; load how many order lines are currently in the cart
+       cmp eax, ebx                                                                               ; if the index is equal to or above order_count it is out of range
+       jge remove_invalid                                                                         ; jump to the invalid handler (jge - jump if greater or equal)
+
+       mov esi, eax                                                                               ; save the target order line index in esi for use throughout the remove block
+
+       mov ebx, [order_items + esi*4]                                                             ; get the drink index stored in the order line we are removing
+       mov ecx, [order_sizes + esi*4]                                                             ; get the size (0=Regular, 1=Large) stored in that order line
+
+       cmp ecx, 0                                                                                 ; if the size is 0 it means regular
+       je remove_regular_price                                                                    ; use the regular price list (je - jump if equal)
+
+       mov eax, [large_prices + ebx*4]                                                            ; otherwise load the large price for this drink
+       jmp remove_price_done                                                                      ; jmp - jump
+
+remove_regular_price:
+       mov eax, [regular_prices + ebx*4]                                                          ; load the regular price for this drink
+
+remove_price_done:
+       mov edx, [order_qtys + esi*4]                                                              ; get the quantity stored in the order line we are removing
+       imul eax, edx                                                                              ; multiply price by quantity to get the total cost of this line (imul - integer multiply)
+       sub [subtotal], eax                                                                        ; deduct that cost from the running subtotal so the subtotal stays accurate
+
+       mov ebx, esi                                                                               ; ebx starts at the removed index and will walk forward through every slot above it
+
+remove_shift_loop:
+       mov ecx, ebx                                                                               ; ecx = index of the current slot we are writing into
+       inc ecx                                                                                    ; ecx = index of the next slot we are copying from (inc - increment)
+
+       cmp ecx, [order_count]                                                                     ; if the next slot is already past the last filled slot the shift is complete
+       jge remove_shift_done                                                                      ; stop shifting (jge - jump if greater or equal)
+
+       mov eax, [order_items + ecx*4]                                                             ; load the drink index from the next slot
+       mov [order_items + ebx*4], eax                                                             ; write it into the current slot to close the gap
+
+       mov eax, [order_sizes + ecx*4]                                                             ; load the size from the next slot
+       mov [order_sizes + ebx*4], eax                                                             ; write it into the current slot
+
+       mov eax, [order_sugar + ecx*4]                                                             ; load the sugar level from the next slot
+       mov [order_sugar + ebx*4], eax                                                             ; write it into the current slot
+
+       mov eax, [order_ice + ecx*4]                                                               ; load the ice level from the next slot
+       mov [order_ice + ebx*4], eax                                                               ; write it into the current slot
+
+       mov eax, [order_qtys + ecx*4]                                                              ; load the quantity from the next slot
+       mov [order_qtys + ebx*4], eax                                                              ; write it into the current slot
+
+       inc ebx                                                                                    ; advance to the next slot and repeat (inc - increment)
+       jmp remove_shift_loop                                                                      ; repeat the shift for the next slot (jmp - jump)
+
+remove_shift_done:
+       dec dword [order_count]                                                                    ; reduce the order count by 1 since one line has been removed (dec - decrement)
+
+       mov eax, remove_msg                                                                        ; print the confirmation message that the item was removed successfully
+       call print_str
+
+       jmp show_cart                                                                              ; return to the cart view to show the updated cart (jmp - jump)
+
+remove_invalid:
+       mov eax, remove_invalid_msg                                                                ; print the message that the item number entered was out of range
+       call print_str
+
+       jmp show_cart                                                                              ; return to the cart view so the user can try again (jmp - jump)
 
 checkout:
        mov eax, receipt_hdr                                                                       ; print the receipt banner
