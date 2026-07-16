@@ -67,7 +67,7 @@ section .data
        ; option shown after viewing the cart
        continue_menu db 10
                      db "1. Continue Ordering", 10
-                     db "2. Checkout", 10, 0
+                     db "2. Checkout", 10
                      db "3. Remove Item", 10, 0
        ask_continue db "Choice: ", 0                                                             ; text that prompt users to continue ordering or to checkout
 
