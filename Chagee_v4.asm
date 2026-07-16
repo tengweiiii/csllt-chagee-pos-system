@@ -113,6 +113,7 @@ section .data
                 db "=================================================================",10,0
        
        ; drink names without prices when printing the cart and receipt
+       item_prefix db ". ", 0                                                                     ; separator text printed between the item number and the drink name in the cart view
        iname1 db "BO.YA Jasmine Green Milk Tea",0
        iname2 db "White Peach Oolong Milk Tea",0
        iname3 db "Da Hong Pao Milk Tea",0
@@ -446,9 +447,16 @@ cart_loop:
        cmp esi, [order_count]                                                                     ; if we already printed every order line
        jge cart_done                                                                              ; stop the loop (jge - jump if greater or equal)
        
-       mov ebx, [order_items + esi*4]                                                             ; get the drink index
-       
-       mov eax, [iname_table + ebx*4]                                                             ; lookup the address of that drink's name
+       mov ebx, [order_items + esi*4]                                                             ; get the drink index stored in this order line
+
+       mov eax, esi                                                                               ; load the current loop counter into eax so we can print it as the item number
+       inc eax                                                                                    ; add 1 to convert from 0-based index to 1-based display number (inc - increment)
+       call print_int                                                                             ; print the item number as a plain number
+
+       mov eax, item_prefix                                                                       ; load the address of the item prefix text into eax
+       call print_str                                                                             ; print ". " to separate the item number from the drink name
+
+       mov eax, [iname_table + ebx*4]                                                             ; lookup the address of that drink's name using the drink index
        call print_str                                                                             ; print the drink name
        
        mov eax, newline                                                                           ; move to a new line
