@@ -323,10 +323,10 @@ quantity_selection:
        
        sub eax, '0'                                                                               ; convert the typed character into plain number 
        
-       cmp eax, '1'                                                                               ; if the character is less than '1' 
+       cmp eax, 1                                                                               ; if the character is less than '1' 
        jl bad_item                                                                                ; print invalid input message (jl - jump if less)
 
-       cmp eax, '9'                                                                               ; if the character is more than '9'
+       cmp eax, 9                                                                               ; if the character is more than '9'
        jg bad_item                                                                                ; print invalid input message (jg - jump if greater)
        
        mov edx, eax                                                                               ; save the quantity in edx
