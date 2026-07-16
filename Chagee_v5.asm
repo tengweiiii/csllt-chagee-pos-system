@@ -29,13 +29,13 @@ section .data
        ask_item db 10,"Which is your cup of tea? (1-5): ", 0                                               ; text that prompt user to select a drink             
        
        ; list of drinks size after a drink is selected
-       size_menu db 10,"Size: ", 10
+       size_menu db 10,Size it up!", 10
                  db "1. Regular", 10
                  db "2. Large", 10, 0
-       ask_size db "Size it up! (1/2): ", 0                                                              ; text that prompt user to select a drinks size
+       ask_size db "What is your sugar vibe today? (1/2): ", 0                                                              ; text that prompt user to select a drinks size
        
        ; list of sugar level choices
-       sugar_menu db 10,"Sugar Level", 10
+       sugar_menu db 10,Customize your sugar level!", 10
                   db "1. Normal Sweet", 10
                   db "2. Less Sweet", 10
                   db "3. Slightly Sweet", 10
@@ -49,7 +49,7 @@ section .data
                 db "3. No Ice", 10
                 db "4. Hot", 10, 0
        
-       ask_ice db "How cool do you want it? (1-4): ", 0                                              ; text that prompt users to select an ice level 
+       ask_ice db "Fire or Ice? (1-4): ", 0                                              ; text that prompt users to select an ice level 
        ask_qty db "How many cups of happiness? (1-99): ", 0                                        ; 1-99 to support two-digit quantities
        
        added_msg db ">>> Item Added Successfully!", 10, 0                                        ; message shown after an item is successfully added to the cart
