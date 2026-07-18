@@ -448,12 +448,16 @@ cart_loop:
        
        mov ebx, [order_items + esi*4]                                                             ; get the drink index stored in this order line
 
+       push ebx   
+
        mov eax, esi                                                                               ; load the current loop counter into eax so we can print it as the item number
        inc eax                                                                                    ; add 1 to convert from 0-based index to 1-based display number (inc - increment)
        call print_int                                                                             ; print the item number as a plain number
 
        mov eax, item_prefix                                                                       ; load the address of the item prefix text into eax
        call print_str                                                                             ; print ". " to separate the item number from the drink name
+
+       pop ebx
 
        mov eax, [iname_table + ebx*4]                                                             ; lookup the address of that drink's name using the drink index
        call print_str                                                                             ; print the drink name
