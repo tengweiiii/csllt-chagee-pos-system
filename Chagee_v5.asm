@@ -115,7 +115,7 @@ section .data
                 db "=================================================================",10,0
        
        ; drink names without prices when printing the cart and receipt
-       iname1 db "BO.YA Jasmine Green Milk Tea",0
+       iname1 db "BO•YA Jasmine Green Milk Tea",0
        iname2 db "White Peach Oolong Milk Tea",0
        iname3 db "Da Hong Pao Milk Tea",0
        iname4 db "Tie Guan Yin Milk Tea",0
